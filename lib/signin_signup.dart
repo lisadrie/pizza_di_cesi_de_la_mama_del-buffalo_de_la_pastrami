@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pizzas/user.dart';
+import 'package:pizzas/userProvider.dart';
+import 'package:provider/provider.dart';
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key, });
+  const MyApp({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +77,12 @@ class _LoginCardState extends State<LoginCard> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                login(emailController.text, passwordController.text);
+                login(emailController.text, passwordController.text)
+                    .then((User? user) {
+
+                      Provider.of<UserProvider>(context, listen:false).login(user!);
+                  if (user!=null) context.go('/home');
+                });
               },
               child: const Text('Login'),
             ),
@@ -82,10 +92,10 @@ class _LoginCardState extends State<LoginCard> {
     );
   }
 
-  void login(String email, String password) async {
+  Future<User?> login(String email, String password) async {
     try {
       Response response = await Dio().post(
-        'https://pizzas.shrp.dev/items/pizzas/auth/login',
+        'https://pizzas.shrp.dev/auth/login',
         data: jsonEncode(<String, String>{
           'email': email,
           'password': password,
@@ -96,20 +106,23 @@ class _LoginCardState extends State<LoginCard> {
       );
 
       if (response.statusCode == 200) {
-        final accessToken = jsonDecode(response.data)['access_token'];
-        print(accessToken);
+        return User.fromJson(response.data['data']);
       } else {
-        final errorMessage = jsonDecode(response.data)['message'];
+        final errorMessage = response.data['message'];
         print(errorMessage);
+        return null;
       }
     } catch (e) {
       print("Error: $e");
+      return null;
     }
   }
 }
 
 class SignupCard extends StatefulWidget {
-  const SignupCard({super.key, });
+  const SignupCard({
+    super.key,
+  });
 
   @override
   State<SignupCard> createState() => _SignupCardState();
